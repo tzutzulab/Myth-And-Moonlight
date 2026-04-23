@@ -2,7 +2,7 @@
 "name": "拾光故事集",
 "short_name": "拾光故事",
 "description": "收藏溫馨的枕邊故事與宏大的符文大地傳說",
-"start_url": "stories_hub.html",
+"start_url": "index.html",
 "display": "standalone",
 "background_color": "#f9f7f2",
 "theme_color": "#8c8578",
