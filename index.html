@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拾光故事集</title>
+    
+    <link rel="preload" href="./icon.png" as="image">
+    
+    <!-- PWA 核心設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="拾光故事集">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <link rel="manifest" href="./manifest_hub.json">
+    <link rel="apple-touch-icon" href="./icon.png">
+    <link rel="icon" type="image/png" href="./icon.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f9f7f2; 
+            overflow: hidden; 
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+            position: fixed; 
+        }
+
+        .story-button {
+            background-color: #ffffff;
+            border: 1.5px solid #d1ccc0;
+            border-radius: 16px;
+            padding: 28px 20px;
+            width: 100%;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 0 rgba(209, 204, 192, 0.3);
+            text-decoration: none; /* 移除超連結下劃線 */
+        }
+
+        .story-button:active {
+            transform: scale(0.98);
+            background-color: #f2f0eb;
+            box-shadow: 0 0 0 rgba(209, 204, 192, 0);
+        }
+
+        #installPrompt {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 320px;
+            background: rgba(255, 255, 255, 0.8); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            text-align: center;
+            animation: fadeInCenter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeInCenter {
+            from { transform: translate(-50%, -45%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center">
+
+    <div id="installPrompt">
+        <div class="flex flex-col items-center space-y-4">
+            <img src="./icon.png" class="w-20 h-20 rounded-2xl shadow-sm object-cover" alt="App Icon">
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold text-gray-800">帶走這份故事</h3>
+                <p class="text-xs text-gray-500">將「拾光故事集」加入主畫面</p>
+            </div>
+            <div class="flex w-full space-x-3 pt-2">
+                <button onclick="closePrompt()" class="flex-1 text-sm text-gray-400 font-medium py-3 rounded-xl hover:bg-gray-50">稍後</button>
+                <button id="installBtn" class="flex-1 bg-[#8c8578] text-white text-sm font-bold py-3 rounded-xl shadow-sm active:bg-[#7a7368]">立即安裝</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-md mx-auto px-10 w-full flex flex-col items-center justify-center">
+        <header class="text-center mb-16">
+            <div class="mb-6 inline-block">
+                <img src="./icon.png" class="w-20 h-20 rounded-3xl shadow-sm mx-auto border-4 border-white" alt="Logo">
+            </div>
+            <h1 class="text-3xl font-bold text-[#5c5850] tracking-widest">拾光故事集</h1>
+        </header>
+
+        <div class="flex flex-col space-y-6 w-full">
+            <!-- 枕邊故事 入口：請確保檔案名稱正確 -->
+            <a href="./枕邊故事.html" class="story-button">
+                <div class="flex flex-col items-center space-y-1">
+                    <span class="text-2xl mb-1">🌙</span>
+                    <span class="text-xl font-bold text-[#5c5850]">枕邊故事</span>
+                </div>
+            </a>
+
+            <!-- 符文大地故事館 入口：請確保檔案名稱正確 -->
+            <a href="./符文大地故事館.html" class="story-button">
+                <div class="flex flex-col items-center space-y-1">
+                    <span class="text-2xl mb-1">⚔️</span>
+                    <span class="text-xl font-bold text-[#5c5850]">符文大地故事館</span>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        const isSupportedProtocol = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+
+        if ('serviceWorker' in navigator && isSupportedProtocol) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Fail:', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            setTimeout(() => {
+                installPrompt.style.display = 'block';
+            }, 1000);
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installPrompt.style.display = 'none';
+        });
+
+        function closePrompt() {
+            installPrompt.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
