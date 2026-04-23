@@ -37,6 +37,7 @@
             position: fixed; 
         }
 
+        /* 參考截圖的按鈕風格 */
         .story-button {
             background-color: #ffffff;
             border: 1.5px solid #d1ccc0;
@@ -49,7 +50,8 @@
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 2px 0 rgba(209, 204, 192, 0.3);
-            text-decoration: none; /* 移除超連結下劃線 */
+            text-decoration: none;
+            color: inherit;
         }
 
         .story-button:active {
@@ -58,6 +60,7 @@
             box-shadow: 0 0 0 rgba(209, 204, 192, 0);
         }
 
+        /* 安裝提示組件 (毛玻璃效果) */
         #installPrompt {
             position: fixed;
             top: 50%;
@@ -65,12 +68,12 @@
             transform: translate(-50%, -50%);
             width: 85%;
             max-width: 320px;
-            background: rgba(255, 255, 255, 0.8); 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 28px;
             padding: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
             z-index: 100;
             display: none; 
             border: 1px solid rgba(255, 255, 255, 0.5);
@@ -86,20 +89,22 @@
 </head>
 <body class="h-screen w-screen flex items-center justify-center">
 
+    <!-- 安裝提示框 -->
     <div id="installPrompt">
-        <div class="flex flex-col items-center space-y-4">
-            <img src="./icon.png" class="w-20 h-20 rounded-2xl shadow-sm object-cover" alt="App Icon">
+        <div class="flex flex-col items-center space-y-5">
+            <img src="./icon.png" class="w-20 h-20 rounded-2xl shadow-sm object-cover border border-gray-100" alt="App Icon">
             <div class="space-y-1">
                 <h3 class="text-lg font-bold text-gray-800">帶走這份故事</h3>
                 <p class="text-xs text-gray-500">將「拾光故事集」加入主畫面</p>
             </div>
             <div class="flex w-full space-x-3 pt-2">
-                <button onclick="closePrompt()" class="flex-1 text-sm text-gray-400 font-medium py-3 rounded-xl hover:bg-gray-50">稍後</button>
-                <button id="installBtn" class="flex-1 bg-[#8c8578] text-white text-sm font-bold py-3 rounded-xl shadow-sm active:bg-[#7a7368]">立即安裝</button>
+                <button onclick="closePrompt()" class="flex-1 text-sm text-gray-400 font-medium py-3 rounded-xl hover:bg-gray-50 transition-colors">稍後</button>
+                <button id="installBtn" class="flex-1 bg-[#8c8578] text-white text-sm font-bold py-3 rounded-xl shadow-sm active:bg-[#7a7368] transition-transform active:scale-95">立即安裝</button>
             </div>
         </div>
     </div>
 
+    <!-- 主選單內容 -->
     <main class="max-w-md mx-auto px-10 w-full flex flex-col items-center justify-center">
         <header class="text-center mb-16">
             <div class="mb-6 inline-block">
@@ -109,7 +114,7 @@
         </header>
 
         <div class="flex flex-col space-y-6 w-full">
-            <!-- 枕邊故事 入口：請確保檔案名稱正確 -->
+            <!-- 1. 枕邊故事 入口 -->
             <a href="./枕邊故事.html" class="story-button">
                 <div class="flex flex-col items-center space-y-1">
                     <span class="text-2xl mb-1">🌙</span>
@@ -117,7 +122,7 @@
                 </div>
             </a>
 
-            <!-- 符文大地故事館 入口：請確保檔案名稱正確 -->
+            <!-- 2. 符文大地故事館 入口 -->
             <a href="./符文大地故事館.html" class="story-button">
                 <div class="flex flex-col items-center space-y-1">
                     <span class="text-2xl mb-1">⚔️</span>
@@ -128,11 +133,12 @@
     </main>
 
     <script>
-        const isSupportedProtocol = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+        const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
 
-        if ('serviceWorker' in navigator && isSupportedProtocol) {
+        // 註冊 Service Worker
+        if ('serviceWorker' in navigator && isSecure) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Fail:', err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Error:', err));
             });
         }
 
@@ -141,17 +147,24 @@
         const installBtn = document.getElementById('installBtn');
 
         window.addEventListener('beforeinstallprompt', (e) => {
+            // 防止瀏覽器自動彈出預設提示
             e.preventDefault();
             deferredPrompt = e;
-            setTimeout(() => {
-                installPrompt.style.display = 'block';
-            }, 1000);
+            
+            // 關鍵修改：檢查 SessionStorage，確保每次開啟 App 期間只顯示一次
+            if (!sessionStorage.getItem('installPromptShown')) {
+                setTimeout(() => {
+                    installPrompt.style.display = 'block';
+                    sessionStorage.setItem('installPromptShown', 'true');
+                }, 1500);
+            }
         });
 
         installBtn.addEventListener('click', async () => {
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install: ${outcome}`);
             deferredPrompt = null;
             installPrompt.style.display = 'none';
         });
@@ -159,6 +172,12 @@
         function closePrompt() {
             installPrompt.style.display = 'none';
         }
+
+        // 當 App 成功安裝後自動隱藏
+        window.addEventListener('appinstalled', () => {
+            installPrompt.style.display = 'none';
+            deferredPrompt = null;
+        });
     </script>
 </body>
 </html>
