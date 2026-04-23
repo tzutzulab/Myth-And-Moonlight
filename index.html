@@ -7,14 +7,11 @@
     
     <link rel="preload" href="./icon.png" as="image">
     
-    <!-- PWA 核心設定：修正導覽列顏色控制 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <!-- 設為 default 以確保在淺色背景下系統圖示變為深色 -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="拾光故事集">
     <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- 設定初始主題色為您的米色背景 -->
     <meta name="theme-color" id="theme-meta" content="#f9f7f2">
     
     <link rel="manifest" href="./manifest_hub.json">
@@ -39,6 +36,7 @@
             flex-direction: column;
             -webkit-tap-highlight-color: transparent;
             position: fixed; 
+            transition: background-color 0.3s ease;
         }
 
         .story-button {
@@ -62,7 +60,6 @@
             box-shadow: 0 0 0 rgba(209, 204, 192, 0);
         }
 
-        /* 溫潤感的安裝提示框 */
         #installPrompt {
             position: fixed;
             top: 50%;
@@ -91,33 +88,23 @@
 </head>
 <body class="h-screen w-screen flex items-center justify-center">
 
-    <!-- 安裝提示框 -->
     <div id="installPrompt">
         <div class="flex flex-col items-center space-y-5">
             <img src="./icon.png" class="w-20 h-20 rounded-3xl shadow-sm object-cover border border-gray-100" alt="App Icon">
             <div class="space-y-1">
                 <h3 class="text-xl font-bold text-[#5c5850]">帶走這份溫柔</h3>
-                <p class="text-xs text-gray-500 leading-relaxed">
-                    將「拾光故事集」收藏至主畫面<br>
-                    讓月光與傳說陪伴您的每個夜晚
-                </p>
+                <p class="text-xs text-gray-500 leading-relaxed">將「拾光故事集」收藏至主畫面<br>讓月光與傳說陪伴您的每個夜晚</p>
             </div>
             <div class="flex w-full space-x-3 pt-3">
-                <button onclick="closePrompt()" class="flex-1 text-sm text-gray-400 font-medium py-3.5 rounded-2xl hover:bg-black/5 transition-colors">
-                    下次再說
-                </button>
-                <button id="installBtn" class="flex-1 bg-[#8c8578] text-white text-sm font-bold py-3.5 rounded-2xl shadow-sm active:scale-95 transition-transform">
-                    立即收藏
-                </button>
+                <button onclick="closePrompt()" class="flex-1 text-sm text-gray-400 font-medium py-3.5 rounded-2xl hover:bg-black/5 transition-colors">下次再說</button>
+                <button id="installBtn" class="flex-1 bg-[#8c8578] text-white text-sm font-bold py-3.5 rounded-2xl shadow-sm active:scale-95 transition-transform">立即收藏</button>
             </div>
         </div>
     </div>
 
     <main class="max-w-md mx-auto px-10 w-full flex flex-col items-center justify-center">
         <header class="text-center mb-16">
-            <div class="mb-6">
-                <img src="./icon.png" class="w-24 h-24 rounded-[32px] shadow-sm mx-auto border-4 border-white" alt="Logo">
-            </div>
+            <div class="mb-6"><img src="./icon.png" class="w-24 h-24 rounded-[32px] shadow-sm mx-auto border-4 border-white" alt="Logo"></div>
             <h1 class="text-3xl font-bold text-[#5c5850] tracking-[0.2em]">拾光故事集</h1>
         </header>
 
@@ -128,7 +115,6 @@
                     <span class="text-xl font-bold text-[#5c5850]">枕邊故事</span>
                 </div>
             </a>
-
             <a href="./符文大地故事館.html" class="story-button">
                 <div class="flex flex-col items-center">
                     <span class="text-2xl mb-1">⚔️</span>
@@ -139,54 +125,46 @@
     </main>
 
     <script>
-        // 1. 強制確保首頁導覽列顏色同步
-        const themeMeta = document.getElementById('theme-meta');
+        // 同步狀態列顏色
         function syncStatusBar() {
-            // 強制設定為頁面背景色
-            themeMeta.setAttribute('content', '#f9f7f2');
+            const themeMeta = document.getElementById('theme-meta');
+            const bgColor = window.getComputedStyle(document.body).backgroundColor;
+            themeMeta.setAttribute('content', bgColor);
         }
-        syncStatusBar();
 
-        // 2. Service Worker 註冊
-        const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-        if ('serviceWorker' in navigator && isSecure) {
+        const observer = new MutationObserver(syncStatusBar);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+        window.addEventListener('load', syncStatusBar);
+
+        // Service Worker
+        if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Error:', err));
             });
         }
 
-        // 3. PWA 安裝邏輯
         let deferredPrompt;
-        const installPrompt = document.getElementById('installPrompt');
-        const installBtn = document.getElementById('installBtn');
-
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             if (!sessionStorage.getItem('storyHubInstallShown')) {
                 setTimeout(() => {
-                    installPrompt.style.display = 'block';
+                    document.getElementById('installPrompt').style.display = 'block';
                     sessionStorage.setItem('storyHubInstallShown', 'true');
                 }, 1500);
             }
         });
 
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-            deferredPrompt = null;
-            installPrompt.style.display = 'none';
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                closePrompt();
+            }
         });
 
-        function closePrompt() { installPrompt.style.display = 'none'; }
-        window.addEventListener('appinstalled', () => { installPrompt.style.display = 'none'; });
-
-        // 4. 防止頁面被回彈效果影響顏色顯示（針對 iOS）
-        document.body.addEventListener('touchmove', function(e) {
-            if (e.target.closest('main')) return;
-            e.preventDefault();
-        }, { passive: false });
+        function closePrompt() { document.getElementById('installPrompt').style.display = 'none'; }
     </script>
 </body>
 </html>
